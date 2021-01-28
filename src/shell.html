@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+<!--
+	@licstart
+
+	emshell-sdl - shell.html
+	Browser entry point.
+
+	Copyright 2021 David Apollo (77db70f775fa0b590889c45371a70a1d23e99869d4565976a5207c11606fb6aa)
+
+	Licensed under the Apache License, Version 2.0 (the "License");
+	you may not use this file except in compliance with the License.
+	You may obtain a copy of the License at
+
+		http://www.apache.org/licenses/LICENSE-2.0
+
+	Unless required by applicable law or agreed to in writing, software
+	distributed under the License is distributed on an "AS IS" BASIS,
+	WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+	See the License for the specific language governing permissions and
+	limitations under the License.
+
+	@licend
+-->
+		<title>Loading...</title>
+
+		<meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height" />
+
+		<style type="text/css">
+			#emContainer, .nonInteractive {
+				/* UI: Disable native panning and zooming */
+				/* touch-action: none; */
+			}
+
+			.nonInteractive {
+				/* UI: Make this element "invisible" to mouse and touch */
+				pointer-events: none;
+			}
+
+			html, body {
+				position: relative;
+				width: 100%;
+				height: 100%;
+			}
+
+			body {
+				background-color: #000;
+				color: #ddd;
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+				font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+			}
+
+			.modal {
+				display: block;
+				position: absolute;
+				top: 0;
+				bottom: 0;
+				left: 0;
+				right: 0;
+				margin: auto;
+				text-align: center;
+				transition: opacity 1s;
+			}
+
+			.modal:not(.visible) {
+				opacity: 0;
+			}
+
+			.visible {
+				display: block;
+				opacity: 1;
+			}
+
+			noscript {
+				width: 50%;
+				height: 2em;
+				line-height: 2em;
+			}
+
+			#statusContainer {
+				width: 140px;
+				height: 140px;
+				background-color: #333;
+				border-radius: 20px;
+			}
+
+			#statusContainer.visible {
+				opacity: 0.7;
+			}
+
+			progress-ring {
+				width: 100%;
+				height: 120px;
+			}
+
+			#emContainer {
+				width: 100%;
+				height: 100%;
+			}
+
+			#canvas {
+				width: 100% !important;
+				height: 100% !important;
+				object-fit: contain !important;
+				object-position: 50% 50% !important;
+				image-rendering: auto !important; /* smooth (auto), pixelated */
+			}
+		</style>
+	</head>
+	<body>
+		<noscript class="modal visible">You need to enable JavaScript to run this app.</noscript>
+		<div id="statusContainer" class="modal nonInteractive">
+			<progress-ring class="modal visible" id="progress" stroke="8" radius="60" progress="0"></progress-ring>
+		</div>
+		<div id="emContainer">
+			<canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+		</div>
+		<script async src="./bundle.js"></script>
+		<script async src="./progressRing.shell.js"></script>
+	</body>
+</html>
