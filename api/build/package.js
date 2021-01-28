@@ -1,5 +1,5 @@
 // emshell-sdl - build.js
-// Entry point for build scripts
+// Package the user's program into a deployable bundle.
 //
 // Copyright 2021 David Apollo (77db70f775fa0b590889c45371a70a1d23e99869d4565976a5207c11606fb6aa)
 //
@@ -21,19 +21,17 @@ const copy = require('rollup-plugin-copy');
 const commonjs = require('@rollup/plugin-commonjs');
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
 
-const emscripten = require("emscripten-build");
 const path = require("path");
-const fs = require("fs");
 
 ////////////////////////////////////////////////////////////////////////
 // BUNDLE
 ////////////////////////////////////////////////////////////////////////
 
-async function bundleApp(cachePath, outPath, debug) {
+async function packageApp(cachePath, outPath, debug) {
 	const cachePathNormalized = path.normalize(path.resolve(cachePath)).replace(/\\/g, '/');
 
-	// assume __dirname == <shell>/scripts
-	const shellRepoPath = path.resolve(path.join(__dirname, ".."));
+	// assume __dirname == <shell>/api/bundle
+	const shellRepoPath = path.resolve(path.join(__dirname, "..", ".."));
 
 	const bundle = await rollup.rollup({
 		input: path.join(cachePath, "src", "index.js"),
@@ -91,56 +89,6 @@ async function bundleApp(cachePath, outPath, debug) {
 	await bundle.close();
 }
 
-////////////////////////////////////////////////////////////////////////
-// BUILD
-////////////////////////////////////////////////////////////////////////
-
-async function buildApp(buildSettings) {
-	const em = await emscripten.configure(buildSettings);
-	await em.build();
-	await em.install();
-}
-
-////////////////////////////////////////////////////////////////////////
-// CACHE PREP
-////////////////////////////////////////////////////////////////////////
-
-function copyFolderSync(from, to) {
-	// "recursive" returns silently if the dir already exists
-    fs.mkdirSync(to, { recursive: true });
-    fs.readdirSync(from).forEach(element => {
-        if (fs.lstatSync(path.join(from, element)).isFile()) {
-            fs.copyFileSync(path.join(from, element), path.join(to, element));
-        } else {
-            copyFolderSync(path.join(from, element), path.join(to, element));
-        }
-    });
-}
-
-function prepareCache(cachePath) {
-	if (!fs.existsSync(cachePath))
-		fs.mkdirSync(cachePath, { recursive: true });
-
-	copyFolderSync(path.join(__dirname, "..", "src"), path.join(cachePath, "src"));
-}
-
-////////////////////////////////////////////////////////////////////////
-// MAIN
-////////////////////////////////////////////////////////////////////////
-
-async function build({
-	cachePath = path.join(process.cwd(), ".cache"),
-	outPath = path.join(process.cwd(), "dist"),
-	buildSettings = {},
-	debug = false
-} = {}) {
-	prepareCache(cachePath);
-
-	await buildApp(buildSettings);
-
-	await bundleApp(cachePath, outPath, debug);
-
-	return true;
-}
-
-module.exports = build;
+module.exports = {
+    packageApp: packageApp
+};

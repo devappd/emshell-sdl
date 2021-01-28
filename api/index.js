@@ -1,4 +1,4 @@
-const build = require("./build.js");
+const build = require("./build");
 
 module.exports = {
 	build: build
