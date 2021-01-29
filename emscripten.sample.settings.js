@@ -31,7 +31,7 @@
 //   -o module.mjs (this exact filename must be used; .mjs implies "-s EXPORT_ES6=1")
 //   -s MODULARIZE=1
 //   -s ASYNCIFY=1
-//   -s EXTRA_EXPORTED_RUNTIME_METHODS=['FS','IDBFS','JSEvents','GL','callMain','Asyncify']
+//   -s EXTRA_EXPORTED_RUNTIME_METHODS=['FS','IDBFS','JSEvents','GL','callMain']
 //
 // In the sample below, the parameters above are represented by CMake
 // flag variables. THE VARIABLES BELOW ARE NOT IMPLEMENTED BY CMAKE! 
@@ -78,7 +78,7 @@ module.exports = {
         "EMCC_MODULARIZE": true,
         "EMCC_ASYNCIFY": true,
         // Escape outermost single quotes due to emscripten-build/emscripten-sdk-npm arguments bug
-        "EMCC_EXTRA_EXPORTS": "\\'FS','IDBFS','JSEvents','GL','callMain','Asyncify\\'"
+        "EMCC_EXTRA_EXPORTS": "\\'FS','IDBFS','JSEvents','GL','callMain\\'"
       }
     },
   

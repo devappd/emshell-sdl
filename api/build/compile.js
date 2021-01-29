@@ -58,7 +58,8 @@ async function checkoutEmscriptenBranches({
     baseBranch = null,
     mergeBranches = [
         "ports-sdl2-emshell-rollup-ver0",
-        "ports-sdl2-mixer-html5"
+        "ports-sdl2-mixer-html5",
+        { name: "dyncall-result-fix", allowFailure: true }
     ]
 } = {}) {
     // Nothing to do if we don't specify any branches
@@ -108,7 +109,22 @@ async function checkoutEmscriptenBranches({
             throw new RangeError(`mergeBranches ${mergeBranches} must be an array!`);
 
         for (const branch of mergeBranches) {
-            await git.merge([`${remoteName}/${branch}`]);
+            let branchName;
+            if (branch instanceof Object)
+                branchName = branch.name
+            else
+                branchName = branch;
+            
+            try {
+                const mergeResult = await git.merge([`${remoteName}/${branch}`]);
+                if (mergeResult.failed)
+                    throw new Error(mergeResult.conflicts);
+            } catch(e) {
+                if (!branch.allowFailure)
+                    throw e;
+
+                await git.merge(['--abort']);
+            }
         }
     }
 }
