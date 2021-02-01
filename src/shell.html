@@ -30,7 +30,7 @@
 		<style type="text/css">
 			#emContainer, .nonInteractive {
 				/* UI: Disable native panning and zooming */
-				/* touch-action: none; */
+				touch-action: none;
 			}
 
 			.nonInteractive {
@@ -118,6 +118,7 @@
 		<div id="emContainer">
 			<canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
 		</div>
+		<div id="componentContainer"></div>
 		<script async src="./bundle.js"></script>
 		<script async src="./progressRing.shell.js"></script>
 	</body>
