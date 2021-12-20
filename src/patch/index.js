@@ -32,6 +32,10 @@
 import { patchFullscreenRequests } from "./video.js";
 import { patchAlwaysSyncToIDB } from "./fileSystem.js";
 
+//#if _DEBUG
+import { patchFsReadPaths } from "./fileSystem.js";
+//#endif
+
 ////////////////////////////////////////////////////////////////////////
 // Entry-point
 ////////////////////////////////////////////////////////////////////////
@@ -47,4 +51,8 @@ export function patchEmscriptenEvents(instance) {
 	patchFullscreenRequests(instance);
 	// TODO: Make globList configurable
 	patchAlwaysSyncToIDB(instance, []);
+
+//#if _DEBUG
+	patchFsReadPaths(instance);
+//#endif
 }

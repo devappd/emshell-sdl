@@ -20,6 +20,7 @@ const terser = require('rollup-plugin-terser').terser;
 const copy = require('rollup-plugin-copy');
 const commonjs = require('@rollup/plugin-commonjs');
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
+const jscc = require('rollup-plugin-jscc');
 
 const path = require("path");
 
@@ -75,13 +76,18 @@ async function packageApp(cachePath, assetsPath, outPath, debug) {
 				]
 			}),
 
+			jscc({
+				values: { _DEBUG: debug ? 1 : 0 },
+				sourcemap: !!debug
+			}),
+
 			// If we're building for production (npm run build
             // instead of npm run dev), minify
             !debug && terser(),
         ]
 	});
 	await bundle.write({
-		sourcemap: true,
+		sourcemap: !!debug,
 		format: 'iife',
 		name: 'app',
 		file: path.join(outPath, "bundle.js")

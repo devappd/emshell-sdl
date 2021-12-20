@@ -68,3 +68,27 @@ export function patchAlwaysSyncToIDB(instance, globList) {
 		}
 	}(instance.FS.close);
 }
+
+//#if _DEBUG
+export function patchFsReadPaths(instance) {
+	if (!instance || !instance.FS)
+		return;
+	
+	let readPaths = '';
+
+	window.emshellGetReadPaths = function() {
+		return readPaths;
+	};
+
+	window.emshellClearReadPaths = function() {
+		readPaths = '';
+	};
+
+	instance.FS.read = function(predefinedRead) {
+		return function(stream, buffer, offset, length, position) {
+			readPaths += stream.path + '\n';
+			return predefinedRead(stream, buffer, offset, length, position);
+		}
+	}(instance.FS.read);
+}
+//#endif
