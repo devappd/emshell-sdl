@@ -39,14 +39,6 @@ import { patchAlwaysSyncToIDB } from "./fileSystem.js";
 function validateInstance(instance) {
 	if (!instance)
 		throw new RangeError('Module instance is invalid!');
-
-	// patchEventHandlerRegistration(), patchFullscreenRequests()
-	if (!instance.JSEvents)
-		throw new RangeError(`Module instance does not expose JSEvents! Pass this linker flag to EMCC:
-
-	-s EXTRA_EXPORTED_RUNTIME_METHODS=['JSEvents']
-
-`);
 }
 
 export function patchEmscriptenEvents(instance) {

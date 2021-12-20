@@ -1,5 +1,5 @@
-const build = require("./build");
+const package = require("./package");
 
 module.exports = {
-	build: build
+	package: package
 };

@@ -27,8 +27,9 @@ const path = require("path");
 // BUNDLE
 ////////////////////////////////////////////////////////////////////////
 
-async function packageApp(cachePath, outPath, debug) {
+async function packageApp(cachePath, assetsPath, outPath, debug) {
 	const cachePathNormalized = path.normalize(path.resolve(cachePath)).replace(/\\/g, '/');
+	const assetsPathNormalized = path.normalize(path.resolve(assetsPath)).replace(/\\/g, '/');
 
 	// assume __dirname == <shell>/api/bundle
 	const shellRepoPath = path.resolve(path.join(__dirname, "..", ".."));
@@ -61,16 +62,15 @@ async function packageApp(cachePath, outPath, debug) {
 					{
 						src: [
 							`${cachePathNormalized}/wasm/**/*`,
-							// Skip module.mjs: Bundled in with bundle.js
-							`!${cachePathNormalized}/wasm/**/module.mjs`,
-							// Skip module.wasm.map: See below rule
-							`!${cachePathNormalized}/wasm/**/*.wasm.map`
+
+							// Skip module.mjs: This dependency is already pulled by emshell's index.js
+							`!${cachePathNormalized}/wasm/**/module.mjs`
 						],
 						dest: outPath
 					},
 					{
-						src: [`${cachePathNormalized}/wasm/**/*.wasm.map`],
-						dest: `${outPath}/wasm-map`
+						src: [`${assetsPathNormalized}/**/*`],
+						dest: outPath
 					}
 				]
 			}),

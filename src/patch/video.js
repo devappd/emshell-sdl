@@ -23,40 +23,6 @@
 // into Module.
 
 export function patchFullscreenRequests(instance) {
-	// Intercept emscripten-ports/SDL2's requests for fullscreen so we may modify the
-	// "target" and "deferUntilInEventHandler" behaviors.
-	//
-	// This is tricky because we don't get access to emscripten_request_fullscreen_strategy().
-	// The closest patch vector is JSEvents.deferCall.
-	//
-	// The call trace is:
-	//     * emscripten_request_fullscreen_strategy()
-	//     * _emscripten_do_request_fullscreen() (i.e., Module.doRequestFullscreen())
-	//     * JSEvents.deferCall(_JSEvents_requestFullscreen, 1 /* priority over pointer lock */, [target, strategy])
-	//
-	// The patch strategy is:
-	//     1. If defer call matches signature for SDL fullscreen, then
-	//        a. adjust the target to emContainer and strategy size to "do not modify"
-	//        b. execute the defer function with args immediately.
-	//        c. Else, pass the call to the original function.
-
-	instance.JSEvents.deferCall = function(predefinedDeferCall) {
-		return function(targetFunction, precedence, argsList) {
-			const fullscreenSignature = (
-				precedence === 1
-				&& argsList.length === 2
-				&& argsList[0] === document.getElementById("canvas")
-				&& 'canvasResolutionScaleMode' in argsList[1]
-			);
-
-			// Do not defer fullscreen requests. Pass everything else.
-			if (!fullscreenSignature)
-				return predefinedDeferCall(targetFunction, precedence, argsList);
-
-			return targetFunction(...argsList);
-		}
-	}(instance.JSEvents.deferCall);
-
 	// Patch our canvas to redirect fullscreen requests to emContainer
 	document.getElementById("canvas").requestFullscreen = function(...args) {
 		return document.getElementById("emContainer").requestFullscreen(...args);
