@@ -16,13 +16,22 @@
 // limitations under the License.
 
 import wasmModule from "../wasm/module.mjs";
-import { setProgressStatus } from "./ui.js";
+import { setProgressByStatusMessage, setProgressError, handleUncaughtError } from "./ui.js";
 import { setupInstance, teardownInstance } from "./runtime.js";
+import { handleStatusInteraction } from "./error.js";
 
 let args = [];
 let wasmInstance;
 
 async function main() {
+	// Set event handlers
+	window.addEventListener('error', handleUncaughtError, false);
+
+	const statusElement = document.getElementById("statusContainer");
+
+	statusElement.addEventListener("click", handleStatusInteraction, false);
+	statusElement.addEventListener("activate", handleStatusInteraction, false);
+
 	// Initialize the runtime
 	wasmInstance = await wasmModule({
 		// Let setupInstance() do work before calling wasm main()
@@ -39,8 +48,12 @@ async function main() {
 			teardownInstance(this);
 		},
 
+		onAbort: function(msg) {
+			setProgressError(msg);
+		},
+
 		setStatus: function (msg) {
-			setProgressStatus(msg);
+			setProgressByStatusMessage(msg);
 		}
 	});
 }

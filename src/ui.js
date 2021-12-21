@@ -15,54 +15,106 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-let lastStatus, lastRaf;
+import { setErrorLog, appendErrorLog } from "./error.js";
 
-export function setProgressStatus(msg) {
-	const container = document.getElementById("statusContainer");
-	const status = document.getElementById("progress");
-
-	lastStatus = msg;
-
-	function cancelRaf() {
-		if (lastRaf) {
-			window.cancelAnimationFrame(lastRaf);
-			lastRaf = 0;
-		}
+let _containerElement = null;
+function _getContainerElement() {
+	if(!_containerElement) {
+		_containerElement = document.getElementById("statusContainer");
 	}
+	return _containerElement;
+}
 
+let _progressElement = null;
+function _getProgressElement() {
+	if (!_progressElement) {
+		_progressElement = document.getElementById("progress");
+	}
+	return _progressElement;
+}
+
+export function setProgress(percent) {
+	_getProgressElement().setProgress(percent);
+}
+
+export function startIndeterminateProgress() {
+	_getProgressElement().startIndeterminateProgress();
+}
+
+export function stopIndeterminateProgress() {
+	_getProgressElement().stopIndeterminateProgress();
+}
+
+export function showProgress() {
+	_getContainerElement().classList.add("visible");
+}
+
+export function hideProgress() {
+	setProgress(100);
+	_getContainerElement().classList.remove("visible");
+}
+
+export function setProgressByStatusMessage(msg) {
 	if (msg && typeof msg === 'string') {
-		container.classList.add("visible");
+		showProgress();
 
 		if (msg.includes("Downloading data... (") || msg.includes("Please wait... (")) {
-			// Set explicit percent on progress bar
-			cancelRaf();
+			stopIndeterminateProgress();
 
 			const nums = msg.match(/\d+/g).map((val) => parseInt(val));
 
 			if (nums.length == 2) {
-				container.classList.add("visible");
-				
 				const remaining = nums[0];
 				const total = nums[1];
 				const percent = remaining / total * 100;
 
-				status.setAttribute("progress", "" + percent);
+				setProgress(percent);
 			}
-		} else if (!lastRaf) {
-			// Start indeterminate progress bar
-			function step() {
-				if (lastStatus) {
-					const val = parseInt(status.getAttribute("progress"));
-					status.setAttribute("progress", "" + ((val + 1) % 200));
-					lastRaf = window.requestAnimationFrame(step);
-				}
-			}
-			lastRaf = window.requestAnimationFrame(step);
+		} else {
+			startIndeterminateProgress();
 		}
 	} else {
-		// Hide progress bar
-		cancelRaf();
-		status.setAttribute("progress", "100");
-		container.classList.remove("visible");
+		startIndeterminateProgress();
 	}
+}
+
+export function setProgressError(message) {
+	const containerElement = _getContainerElement();
+
+	if (containerElement.classList.contains("error")) {
+		appendErrorLog(message);
+		return;
+	}
+
+	setErrorLog(message);
+	showProgress();
+	setProgress(100);
+
+	containerElement.classList.remove("nonInteractive");
+	containerElement.classList.add("error");
+	containerElement.tabIndex = 0;
+}
+
+export function unsetProgressError() {
+	const containerElement = _getContainerElement();
+
+	if (!containerElement.classList.contains("error")) {
+		return;
+	}
+
+	setErrorLog();
+	hideProgress();
+	
+	containerElement.classList.add("nonInteractive");
+	containerElement.classList.remove("error");
+	containerElement.tabIndex = -1;
+	containerElement.blur();
+}
+
+export function handleUncaughtError(event) {
+    if (event.error) {
+        setProgressError(event.error);
+    } else {
+        setProgressError(_buildMessageFromErrorEvent(event));
+    }
 }

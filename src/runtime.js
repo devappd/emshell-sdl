@@ -16,13 +16,15 @@
 // limitations under the License.
 
 import { patchEmscriptenEvents } from "./patch/index.js";
+import { setProgressError, hideProgress } from "./ui.js";
 
 function onError(err) {
 	console.error(err);
+	setProgressError(err);
 }
 
 function onReady(instance, args) {
-	// Start the program!
+	hideProgress();
 	instance.callMain(args);
 }
 

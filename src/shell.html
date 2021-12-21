@@ -85,10 +85,27 @@
 				height: 140px;
 				background-color: #333;
 				border-radius: 20px;
+				transition: background-image 1s ease, background-color 1s ease;
 			}
 
 			#statusContainer.visible {
 				opacity: 0.7;
+			}
+
+			#statusContainer.error {
+				background-color: rgb(128, 0, 0);
+				background-image: linear-gradient(0deg, rgba(64,0,0,1) 0%, rgba(240,0,0,1) 100%);
+			}
+
+			#statusContainer.error:hover {
+				background-color: rgb(184, 0, 0);
+				background-image: linear-gradient(0deg, rgba(128,0,0,1) 0%, rgba(240,0,0,1) 100%);
+				cursor: pointer;
+			}
+
+			#statusContainer.error:active {
+				background-color: rgb(255,25,25);
+				background-image: linear-gradient(0deg, rgba(240,0,0,1) 0%, rgba(255,160,160,1) 100%);
 			}
 
 			progress-ring {
@@ -112,7 +129,7 @@
 	</head>
 	<body>
 		<noscript class="modal visible">You need to enable JavaScript to run this app.</noscript>
-		<div id="statusContainer" class="modal nonInteractive">
+		<div id="statusContainer" class="modal nonInteractive" tabindex="-1" oncontextmenu="return false;">
 			<progress-ring class="modal visible" id="progress" stroke="8" radius="60" progress="0"></progress-ring>
 		</div>
 		<div id="emContainer">
