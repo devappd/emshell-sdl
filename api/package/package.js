@@ -22,11 +22,22 @@ const commonjs = require('@rollup/plugin-commonjs');
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const jscc = require('rollup-plugin-jscc');
 
+const fs = require("fs");
 const path = require("path");
 
 ////////////////////////////////////////////////////////////////////////
 // BUNDLE
 ////////////////////////////////////////////////////////////////////////
+
+function getVersionHash() {
+	return new Date().toISOString().replace(/[T\.:\-Z]/g, '');
+}
+
+function generateHtml(cachePath, outPath, versionHash) {
+	const template = fs.readFileSync(`${cachePath}/src/shell.html`).toString();
+	const generated = template.replace(/{{VERSION}}/g, versionHash);
+	fs.writeFileSync(`${outPath}/index.html`, generated);
+}
 
 async function packageApp(cachePath, assetsPath, outPath, debug) {
 	const cachePathNormalized = path.normalize(path.resolve(cachePath)).replace(/\\/g, '/');
@@ -34,6 +45,9 @@ async function packageApp(cachePath, assetsPath, outPath, debug) {
 
 	// assume __dirname == <shell>/api/bundle
 	const shellRepoPath = path.resolve(path.join(__dirname, "..", ".."));
+
+	const versionHash = getVersionHash();
+	const outVersionedPath = path.join(outPath, versionHash);
 
 	const bundle = await rollup.rollup({
 		input: path.join(cachePath, "src", "index.js"),
@@ -52,26 +66,29 @@ async function packageApp(cachePath, assetsPath, outPath, debug) {
 			copy({
 				targets: [
 					{ 
-						src: [`${cachePathNormalized}/src/**/*shell*.*`],
+						src: [
+							`${cachePathNormalized}/src/**/*shell*.*`,
+
+							// Skip shell.html as we generate this from a template
+							`!${cachePathNormalized}/src/shell.html`
+						],
 						dest: outPath,
-						rename: (name, ext) => {
-							if (name === "shell" && ext === "html")
-								return "index.html";
-							return `${name}.${ext}`;
-						}
+						flatten: false
 					},
 					{
 						src: [
-							`${cachePathNormalized}/wasm/**/*`,
+							`${cachePathNormalized}/wasm/*`,
 
-							// Skip module.mjs: This dependency is already pulled by emshell's index.js
+							// Skip module.mjs: This dependency is already pulled by the bundle
 							`!${cachePathNormalized}/wasm/**/module.mjs`
 						],
-						dest: outPath
+						dest: outVersionedPath,
+						flatten: false
 					},
 					{
-						src: [`${assetsPathNormalized}/**/*`],
-						dest: outPath
+						src: `${assetsPathNormalized}/*`,
+						dest: outPath,
+						flatten: false
 					}
 				]
 			}),
@@ -90,9 +107,10 @@ async function packageApp(cachePath, assetsPath, outPath, debug) {
 		sourcemap: !!debug,
 		format: 'iife',
 		name: 'app',
-		file: path.join(outPath, "bundle.js")
+		file: path.join(outVersionedPath, "bundle.js")
 	});
 	await bundle.close();
+	generateHtml(cachePathNormalized, outPath, versionHash);
 }
 
 module.exports = {
