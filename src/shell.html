@@ -85,7 +85,10 @@
 				height: 140px;
 				background-color: #333;
 				border-radius: 20px;
-				transition: background-image 1s ease, background-color 1s ease;
+				font-size: 75px;
+				font-weight: bold;
+				font-family: monospace;
+				line-height: 140px;
 			}
 
 			#statusContainer.visible {
@@ -95,6 +98,7 @@
 			#statusContainer.error {
 				background-color: rgb(128, 0, 0);
 				background-image: linear-gradient(0deg, rgba(64,0,0,1) 0%, rgba(240,0,0,1) 100%);
+				transition: opacity 0.5s;
 			}
 
 			#statusContainer.error:hover {
@@ -106,6 +110,10 @@
 			#statusContainer.error:active {
 				background-color: rgb(255,25,25);
 				background-image: linear-gradient(0deg, rgba(255,160,160,1) 0%, rgba(240,0,0,1) 100%);
+			}
+
+			#statusContainer.error:before {
+				content: "!";
 			}
 
 			progress-ring {
@@ -126,8 +134,129 @@
 				image-rendering: auto !important; /* smooth (auto), pixelated */
 			}
 		</style>
-		<script type="text/javascript">
-			window.versionHash = "{{VERSION}}";
+		<script type="module">
+			import {Workbox} from 'https://storage.googleapis.com/workbox-cdn/releases/6.2.0/workbox-window.prod.mjs';
+
+			function loadScript(src) {
+				if (document.getElementById('emshellScript')) {
+					return;
+				}
+				const script = document.createElement('script');
+				script.id = 'emshellScript';
+				script.src = src;
+				script.type = 'text/javascript';
+				script.async = true;
+				script.defer = true;
+				document.head.appendChild(script);
+			}
+
+			function showError(msg) {
+				const status = document.getElementById("statusContainer");
+				status.classList.add("error");
+				status.addEventListener("click", () => {
+					alert(`This application reached an error. The page will now refresh.\n\n---\n\n${msg}`);
+					window.location.reload();
+				}, { once: true });
+			}
+
+			window.addEventListener('load', () => {
+				if ('serviceWorker' in navigator) {
+					// SERVICE WORKER REGISTRATION
+					//
+					// We use a versioned URL scheme where we append a unique version hash to a URL.
+					// Requests are made by the WASM program with an un-versioned URL; our
+					// SW rewrites all un-versioned URL requests to their versioned destination.
+					//
+					// Due to this scheme, we MUST wait for our SW to take control of the page
+					// before loading the program. The un-versioned URL is invalid without a SW to
+					// rewrite it.
+					//
+					// We also want to respond to new asset updates immediately. Therefore, we need
+					// to check for SW updates, and if one exists, then we wait to load the program
+					// AFTER the new SW takes control.
+					//
+					// One caveat to immediate updates is that the new SW should NOT take control if
+					// another browser tab is sharing the current SW. Otherwise, upon activating the
+					// new SW, the current SW becomes de-registered, which would break the other
+					// tabs. Therefore, it is possible that the current SW will continue to control
+					// the page. To aoccommodate old SWs, you need to host the previous couple
+					// versions of the assets alongside the new version.
+					//
+					// In sum, the following conditions must pass successfully:
+					//
+					// 1. If no previous SW exists, then versioned assets load with brand-new SW.
+					// 2. If a current SW exists and there is no updated SW, then versioned assets
+					//    load with current SW.
+					// 3. If there is an updated SW and no other tabs are sharing the current SW,
+					//    then versioned assets load with the updated SW.
+					// 4. If there is an updated SW and another tab is sharing the current SW, then
+					//    versioned assets load with the current SW.
+					// 5. If SW support is disabled, then the web page halts and shows an error.
+					// 6. If user is offline, then the web page loads with cached assets.
+					//
+					// TODO: Implement condition #6.
+
+					const wb = new Workbox('./serviceWorker.shell.js');
+
+					// Flag whether it's safe to activate a new or updated SW.
+					let safeToActivateNewSW = false;
+
+					// If a new update is found, activate it immediately if we are update-safe.
+					wb.addEventListener('waiting', () => {
+						if (safeToActivateNewSW) {
+							wb.messageSkipWaiting();
+						}
+					});
+
+					// Wait for "active" service worker to take control of the page before loading
+					// our bundle. This applies both to brand-new SWs and updated ones. This does
+					// not fire if there is a current SW and there are no updates.
+					wb.addEventListener('controlling', () => {
+						// TODO: Template-ize this cache name, see serviceWorker.shell.js
+						caches.delete('emshell-runtime-v1').finally(() => {
+							loadScript('./bundle.js');
+						});
+					});
+
+					// Register the SW, check for updates, and activate current SW if none are found
+					// or we are not update-safe.
+					const registerAndUpdateSW = () => {
+						return wb.register().then(registration => {
+							registration.update().then(updateRegistration => {
+								const isUpdating = (!!updateRegistration.installing || !!updateRegistration.waiting);
+								// No updates found; proceed to use the current service worker.
+								if(!safeToActivateNewSW || !isUpdating) {
+									loadScript('./bundle.js');
+								}
+							});
+						});
+					}
+
+					// Register-and-update flow gets executed here.
+					if (navigator.serviceWorker.controller) {
+						// Check for activation safety: first, we ask the current SW whether it is
+						// safe to update; then, we start the register-and-update flow.
+						navigator.serviceWorker.addEventListener('message', event => {
+							if (event.data.type === 'CHECKED_ACTIVATION_SAFETY') {
+								if (event.data.isSafe) {
+									safeToActivateNewSW = true;
+								}
+								registerAndUpdateSW();
+							}
+						});
+
+						navigator.serviceWorker.controller.postMessage({
+							type: 'CHECK_ACTIVATION_SAFETY'
+						});
+					} else {
+						// No update-safety to check; register-and-update immediately.
+						safeToActivateNewSW = true;
+						registerAndUpdateSW();
+					}
+				} else {
+					showError("A service worker cannot be registered due to an unknown condition.");
+				}
+			}, { once: true });
 		</script>
 	</head>
 	<body>
@@ -139,7 +268,6 @@
 			<canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
 		</div>
 		<div id="componentContainer"></div>
-		<script async src="./{{VERSION}}/bundle.js"></script>
 		<script async src="./progressRing.shell.js"></script>
 	</body>
 </html>

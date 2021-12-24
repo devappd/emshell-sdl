@@ -21,6 +21,8 @@ const copy = require('rollup-plugin-copy');
 const commonjs = require('@rollup/plugin-commonjs');
 const { nodeResolve } = require('@rollup/plugin-node-resolve');
 const jscc = require('rollup-plugin-jscc');
+const replace = require('@rollup/plugin-replace');
+const { minify } = require('html-minifier');
 
 const fs = require("fs");
 const path = require("path");
@@ -31,12 +33,6 @@ const path = require("path");
 
 function getVersionHash() {
 	return new Date().toISOString().replace(/[T\.:\-Z]/g, '');
-}
-
-function generateHtml(cachePath, outPath, versionHash) {
-	const template = fs.readFileSync(`${cachePath}/src/shell.html`).toString();
-	const generated = template.replace(/{{VERSION}}/g, versionHash);
-	fs.writeFileSync(`${outPath}/index.html`, generated);
 }
 
 async function packageApp(cachePath, assetsPath, outPath, debug) {
@@ -62,18 +58,32 @@ async function packageApp(cachePath, assetsPath, outPath, debug) {
 				// Use regex: https://github.com/rollup/rollup-plugin-commonjs/issues/361
 				include: /node_modules/
 			}),
-
+			
 			copy({
 				targets: [
 					{ 
 						src: [
 							`${cachePathNormalized}/src/**/*shell*.*`,
-
-							// Skip shell.html as we generate this from a template
-							`!${cachePathNormalized}/src/shell.html`
+							`!${cachePathNormalized}/src/shell.html`,
 						],
 						dest: outPath,
 						flatten: false
+					},
+					{
+						src: `${cachePathNormalized}/src/shell.html`,
+						dest: outPath,
+						rename: 'index.html',
+
+						// Not used yet
+						// contents.toString().replace(/{{VERSION}}/g, versionHash)
+						transform: !debug ? (contents, filename) => minify(contents.toString(), {
+							minifyCSS: true,
+							minifyJS: true,
+							collapseWhitespace: true,
+							caseSensitive: true,
+							keepClosingSlash: true,
+							removeComments: true
+						}) : (contents, filename) => contents
 					},
 					{
 						src: [
@@ -85,12 +95,18 @@ async function packageApp(cachePath, assetsPath, outPath, debug) {
 						dest: outVersionedPath,
 						flatten: false
 					},
-					{
-						src: `${assetsPathNormalized}/*`,
-						dest: outPath,
-						flatten: false
-					}
-				]
+
+					// Copy assets path if one was specified
+					...(
+						assetsPathNormalized ? [
+							{
+								src: `${assetsPathNormalized}/*`,
+								dest: outVersionedPath,
+								flatten: false
+							}
+						] : []
+					)
+				],
 			}),
 
 			jscc({
@@ -98,19 +114,52 @@ async function packageApp(cachePath, assetsPath, outPath, debug) {
 				sourcemap: !!debug
 			}),
 
-			// If we're building for production (npm run build
-            // instead of npm run dev), minify
-            !debug && terser(),
+			// If we're building for production, minify
+			!debug && terser(),
         ]
 	});
 	await bundle.write({
-		sourcemap: !!debug,
+		sourcemap: !!debug ? 'inline' : false,
 		format: 'iife',
 		name: 'app',
 		file: path.join(outVersionedPath, "bundle.js")
 	});
 	await bundle.close();
-	generateHtml(cachePathNormalized, outPath, versionHash);
+
+	const serviceWorker = await rollup.rollup({
+		input: path.join(cachePath, "src", "serviceWorker.shell.js"),
+		plugins: [
+			nodeResolve({
+				rootDir: path.join(shellRepoPath),
+				resolveOnly: ['workbox-core', 'workbox-strategies', 'workbox-routing'],
+				dedupe: ['workbox-core', 'workbox-strategies', 'workbox-routing']
+			}),
+
+			commonjs({
+				// Use regex: https://github.com/rollup/rollup-plugin-commonjs/issues/361
+				include: /node_modules/
+			}),
+
+			replace({
+				preventAssignment: true,
+				delimiters: ['', ''],
+				values: {
+					'{{VERSION}}': versionHash,
+					'process.env.NODE_ENV': debug ? "'debug'" : "'production'"
+				}
+			}),
+
+			// If we're building for production, minify
+			!debug && terser(),
+		]
+	});
+	await serviceWorker.write({
+		sourcemap: !!debug,
+		format: 'es',
+		name: 'serviceWorker',
+		file: path.join(outPath, "serviceWorker.shell.js")
+	});
+	await serviceWorker.close();
 }
 
 module.exports = {

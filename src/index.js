@@ -40,13 +40,6 @@ async function main() {
 		canvas: document.getElementById("canvas"),
 
 		locateFile: function (path, scriptDirectory) {
-			// This function is queried for a URL to the WASM, and to the preload package. The WASM
-			// query helpfully supplies the bundle.js's base URL, but the package query does not.
-			// Hack the latter case by supplying a path relative to the web page.
-			if (!scriptDirectory) {
-				scriptDirectory = `${window.versionHash}/`;
-			}
-
 			return `${scriptDirectory}${path}`;
 		},
 
@@ -69,4 +62,5 @@ async function main() {
 	});
 }
 
-window.addEventListener("load", main, { once: true });
+// This is loaded after the service worker loads, which happens after the page loads.
+main();
