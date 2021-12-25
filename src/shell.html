@@ -221,11 +221,23 @@
 					// Register the SW, check for updates, and activate current SW if none are found
 					// or we are not update-safe.
 					const registerAndUpdateSW = () => {
+						let swRegistration;
 						return wb.register().then(registration => {
-							registration.update().then(updateRegistration => {
-								const isUpdating = (!!updateRegistration.installing || !!updateRegistration.waiting);
+							swRegistration = registration;
+							swRegistration.update().then(() => {
+								const isUpdating = (!!swRegistration.installing || !!swRegistration.waiting);
 								// No updates found; proceed to use the current service worker.
 								if(!safeToActivateNewSW || !isUpdating) {
+									loadScript('./bundle.js');
+								}
+							}).catch(() => {
+								if (!navigator.serviceWorker.controller
+									|| (!swRegistration.installing
+										&& !swRegistration.waiting
+										&& !swRegistration.active)) {
+									showError("Service worker failed to update and there is no current service worker active.");
+								} else {
+									// We are probably offline or server is down; proceed to use current SW
 									loadScript('./bundle.js');
 								}
 							});

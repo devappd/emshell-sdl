@@ -63,8 +63,8 @@ async function packageApp(cachePath, assetsPath, outPath, debug) {
 				targets: [
 					{ 
 						src: [
-							`${cachePathNormalized}/src/**/*shell*.*`,
-							`!${cachePathNormalized}/src/shell.html`,
+							`${cachePathNormalized}/src/**/*.shell.*`,
+							`!${cachePathNormalized}/src/serviceWorker.shell.js`
 						],
 						dest: outPath,
 						flatten: false
@@ -131,8 +131,8 @@ async function packageApp(cachePath, assetsPath, outPath, debug) {
 		plugins: [
 			nodeResolve({
 				rootDir: path.join(shellRepoPath),
-				resolveOnly: ['workbox-core', 'workbox-strategies', 'workbox-routing'],
-				dedupe: ['workbox-core', 'workbox-strategies', 'workbox-routing']
+				resolveOnly: ['workbox-core', 'workbox-strategies', 'workbox-routing', 'workbox-range-requests', 'workbox-cacheable-response', 'workbox-precaching'],
+				dedupe: ['workbox-core', 'workbox-strategies', 'workbox-routing', 'workbox-range-requests', 'workbox-cacheable-response', 'workbox-precaching']
 			}),
 
 			commonjs({
