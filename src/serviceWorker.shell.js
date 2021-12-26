@@ -24,7 +24,7 @@ import { RangeRequestsPlugin } from 'workbox-range-requests';
 import { precacheAndRoute } from 'workbox-precaching';
 
 const separator = '/';
-const scriptURL = new URL(serviceWorker.scriptURL);
+const scriptURL = self.location;
 const scriptDirname = dirname(scriptURL.pathname, separator);
 const versionHash = '{{VERSION}}';
 
