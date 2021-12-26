@@ -34,26 +34,24 @@ function copyFolderSync(from, to) {
     });
 }
 
+function removeAndCreateDirectory(path) {
+	if (fs.existsSync(path))
+		fs.rmdirSync(path, { recursive: true, force: true });
+	fs.mkdirSync(path, { recursive: true });
+}
+
 function prepareCache(buildPath, cachePath) {
 	if (!fs.existsSync(buildPath))
 		throw new Error(`Build directory does not exist: ${buildPath}`);
 
 	// Reset cache on every build, so that we don't retain any deleted files by accident.
 	// TODO: Would be nice to make cache updates from src/ and wasm/ incremental, like robocopy.
-	if (fs.existsSync(cachePath))
-		fs.rmdirSync(cachePath, { recursive: true, force: true });
-	
-	fs.mkdirSync(cachePath, { recursive: true });
+	removeAndCreateDirectory(cachePath);
 
 	// Populate <cachePath>/wasm with the built Emscripten module. <buildPath>
 	// is assumed to contain *.mjs, *.wasm, optionally *.wasm.map, and has
 	// no subdirectories.
 	const wasmCachePath = path.join(cachePath, "wasm");
-	
-	// TODO: Uncomment once cache prep is incremental
-	// if (fs.existsSync(wasmCachePath))
-	// 	fs.rmdirSync(wasmCachePath, { recursive: true, force: true });
-
 	fs.mkdirSync(wasmCachePath);
 
 	copyFolderSync(buildPath, path.join(cachePath, "wasm"));
@@ -78,16 +76,11 @@ async function package(
 
 	// TODO: Make distibution package generate in temporary location,
 	// and then move it to the actual <outPath>
-	// const outTempPath = `${outPath}.tmp`;
-	// if (fs.existsSync(outTempPath))
-	// 	fs.rmdirSync(outTempPath, { recursive: true, force: true });
 	//
-	// fs.mkdirSync(outTempPath, { recursive: true });
+	// const outTempPath = `${outPath}.tmp`;
+	// removeAndCreateDirectory(outTempPath);
 
-	if(fs.existsSync(outPath))
-		fs.rmdirSync(outPath, { recursive: true, force: true });
-
-	fs.mkdirSync(outPath, { recursive: true});
+	removeAndCreateDirectory(outPath);
 
 	await packageApi.packageApp(cachePath, assetsPath, outPath, debug);
 
